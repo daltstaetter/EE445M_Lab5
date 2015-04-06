@@ -1,6 +1,28 @@
 // filename ************** eFile.h *****************************
 // Middle-level routines to implement a solid-state disk 
 // Jonathan W. Valvano 3/16/11
+#include "stdint.h"
+
+#define DIRENTRYSIZE 12
+#define DIRSIZE 42
+#define DIRECTBLOCK 0
+#define FATSIZE 4000
+#define FATSTART 1
+#define FATEND 16
+#define FREE 0
+#define NAMESIZE 8
+#define BLOCKSIZE 512
+ 
+struct directory {
+	char name[NAMESIZE];
+	uint16_t startFAT;
+	uint16_t endFAT;
+};
+
+typedef struct directory DIRECTORY;
+
+
+
 
 //---------- eFile_Init-----------------
 // Activate the file system, without formating
@@ -27,7 +49,14 @@ int eFile_Create( char name[]);  // create new file, make it empty
 // Open the file, read into RAM last block
 // Input: file name is a single ASCII letter
 // Output: 0 if successful and 1 on failure (e.g., trouble writing to flash)
-int eFile_WOpen(char name[]);      // open a file for writing 
+uint16_t eFile_WOpen(char name[], uint8_t* buf);      // open a file for writing 
+
+
+//---------- eFile_WOpenFront-----------------
+// Open the file, read into RAM last block
+// Input: file name is a single ASCII letter
+// Output: starting index into the block that matches 'name' in the directory else returns -1
+uint16_t eFile_WOpenFront(char name[], uint8_t* buf);
 
 //---------- eFile_Write-----------------
 // save at end of the open file
