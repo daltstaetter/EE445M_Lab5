@@ -2,14 +2,33 @@
 /  Low level disk interface modlue include file  R0.04a   (C)ChaN, 2007
 /-----------------------------------------------------------------------
  * Modified by Jonathan Valvano to simplify usage in Lab 5
- * March 16, 2011
+ * March 17, 2014
  */
+ void disk_timerproc(void);
 #ifndef _DISKIO
 
 #define _READONLY	0	/* 1: Read-only mode */
 
-#include "integer.h"
+typedef signed int		INT;
+typedef unsigned int	UINT;
 
+/* These types are assumed as 8-bit integer */
+typedef signed char		CHAR;
+typedef unsigned char	UCHAR;
+typedef unsigned char	BYTE;
+
+/* These types are assumed as 16-bit integer */
+typedef signed short	SHORT;
+typedef unsigned short	USHORT;
+typedef unsigned short	WORD;
+
+/* These types are assumed as 32-bit integer */
+typedef signed long		LONG;
+typedef unsigned long	ULONG;
+typedef unsigned long	DWORD;
+
+/* Boolean type */
+typedef enum { FALSE = 0, TRUE } BOOL;
 
 /* Status of Disk Functions */
 typedef BYTE	DSTATUS;
@@ -116,10 +135,6 @@ DRESULT eDisk_WriteBlock (
 
 #endif
 DRESULT disk_ioctl (BYTE, BYTE, void*);
-void disk_timerproc (void);
-
-
-
 
 /* Disk Status Bits (DSTATUS) */
 

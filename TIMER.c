@@ -601,15 +601,15 @@ void Timer4B_Handler(void)
 	(*(HandlerTaskArray[9]))(); // start Timer4B task
 }
 
-void Timer5A_Handler(void)
-{
-	TIMER5_ICR_R = TIMER_ICR_TATOCINT; // acknowledge interrupt flag
-	(*(HandlerTaskArray[10]))(); // // start Timer5A task
-}
+//void Timer5A_Handler(void)
+//{
+//	TIMER5_ICR_R = TIMER_ICR_TATOCINT; // acknowledge interrupt flag
+//	(*(HandlerTaskArray[10]))(); // // start Timer5A task
+//}
 
-void Timer5B_Handler(void)
-{
-	TIMER5_ICR_R = TIMER_ICR_TBTOCINT; // acknowledge interrupt flag
-	(*(HandlerTaskArray[11]))(); // start Timer5B task
-}
+//void Timer5B_Handler(void)
+//{
+//	TIMER5_ICR_R = TIMER_ICR_TBTOCINT; // acknowledge interrupt flag
+//	(*(HandlerTaskArray[11]))(); // start Timer5B task
+//}
 

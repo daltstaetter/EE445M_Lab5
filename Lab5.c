@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "tm4c123gh6pm.h"
-#include "inc/hw_types.h"
+//#include "inc/hw_types.h"
 #include "OS.h"
 #include "ADC.h"
 #include "edisk.h"
@@ -49,21 +49,31 @@ unsigned long data;      // ADC sample, 0 to 1023
 unsigned long voltage;   // in mV,      0 to 3000
 unsigned long time;      // in 10msec,  0 to 1000 
 unsigned long t=0;
+	int i;
+	char ch;
   OS_ClearMsTime();    
   DataLost = 0;          // new run with no lost data 
+	eFile_Init();
+	eFile_Format();
+	eFile_Create("Robot");
   printf("Robot running...");
   eFile_RedirectToFile("Robot");
   printf("time(sec)\tdata(volts)\n\r");
   do{
     t++;
-    time=OS_MsTime();            // 10ms resolution in this OS
+    time = OS_MsTime();            // 10ms resolution in this OS
     data = OS_Fifo_Get();        // 1000 Hz sampling get from producer
     voltage = (300*data)/1024;   // in mV
     printf("%0u.%02u\t%0u.%03u\n\r",time/100,time%100,voltage/1000,voltage%1000);
   }
-  while(time < 1000);       // change this to mean 10 seconds
+  while(time < 10000);       // change this to mean 10 seconds
   eFile_EndRedirectToFile();
   printf("done.\n\r");
+	eFile_ROpen("Robot");
+	while(!eFile_ReadNext(&ch)){
+		printf("%u\n\r",ch);
+	}
+	eFile_RClose();
   Running = 0;                // robot no longer running
   OS_Kill();
 }
@@ -132,7 +142,7 @@ extern void Interpreter(void);
 // execute   eFile_Init();  after periodic interrupts have started
 
 //*******************lab 5 main **********
-int realmain(void){        // lab 5 real main
+int main(void){        // lab 5 real main
   OS_Init();           // initialize, disable interrupts
   Running = 0;         // robot not running
   DataLost = 0;        // lost data between producer and consumer
@@ -140,13 +150,13 @@ int realmain(void){        // lab 5 real main
 
 //********initialize communication channels
   OS_Fifo_Init(512);    // ***note*** 4 is not big enough*****
-  ADC_Collect(0, 1000, &Producer); // start ADC sampling, channel 0, 1000 Hz
+  ADC_Collect(4, 1000, &Producer); // start ADC sampling, channel 4, PD3, 12800 Hz  
 
 //*******attach background tasks***********
-  //OS_AddButtonTask(&ButtonPush,2);
+  OS_AddSwitchTasks(&ButtonPush,DownPush,2);
   //OS_AddButtonTask(&DownPush,3);
   //OS_AddPeriodicThread(disk_timerproc,10*TIME_1MS,5);
-
+	
   NumCreated = 0 ;
 // create initial foreground threads
   NumCreated += OS_AddThread(&Interpreter,128,2); 
@@ -177,16 +187,16 @@ void TestDisk(void){  DSTATUS result;  unsigned short block;  int i; unsigned lo
       n = (16807*n)%2147483647; // pseudo random sequence
       buffer[i] = 0xFF&n;        
     }
-    GPIO_PF3 = 0x08;     // PF3 high for 100 block writes
+    //GPIO_PF3 = 0x08;     // PF3 high for 100 block writes
     if(eDisk_WriteBlock(buffer,block))diskError("eDisk_WriteBlock",block); // save to disk
-    GPIO_PF3 = 0x00;     
+    //GPIO_PF3 = 0x00;     
   }  
   printf("Reading blocks\n\r");
   n = 1;  // reseed, start over to get the same sequence
   for(block = 0; block < MAXBLOCKS; block++){
-    GPIO_PF2 = 0x04;     // PF2 high for one block read
+    //GPIO_PF2 = 0x04;     // PF2 high for one block read
     if(eDisk_ReadBlock(buffer,block))diskError("eDisk_ReadBlock",block); // read from disk
-    GPIO_PF2 = 0x00;
+    //GPIO_PF2 = 0x00;
     for(i=0;i<512;i++){
       n = (16807*n)%2147483647; // pseudo random sequence
       if(buffer[i] != (0xFF&n)){
@@ -204,11 +214,11 @@ void RunTest(void){
 //******************* test main1 **********
 // SYSTICK interrupts, period established by OS_Launch
 // Timer interrupts, period established by first call to OS_AddPeriodicThread
-int main(void){   // testmain1
+int testmain1(void){   // testmain1
   OS_Init();           // initialize, disable interrupts
-
+	UART_Init();
 //*******attach background tasks***********
- // OS_AddPeriodicThread(&disk_timerproc,10*TIME_1MS,0,);   // time out routines for disk
+  //OS_AddPeriodicThread(&disk_timerproc,10,10*TIME_1MS,0);   // time out routines for disk
  // OS_AddButtonTask(&RunTest,2);
   
   NumCreated = 0 ;
@@ -223,9 +233,9 @@ int main(void){   // testmain1
 void TestFile(void){   int i; char data; 
   printf("\n\rEE345M/EE380L, Lab 5 eFile test\n\r");
   // simple test of eFile
-  if(eFile_Init())              diskError("eFile_Init",0); 
+  if(eFile_Init())             diskError("eFile_Init",0); 
   if(eFile_Format())            diskError("eFile_Format",0); 
-  //eFile_Directory(&Serial_OutChar);
+  eFile_Directory(&UART_OutChar);
   if(eFile_Create("file1"))     diskError("eFile_Create",0);
   if(eFile_WOpen("file1"))      diskError("eFile_WOpen",0);
   for(i=0;i<1000;i++){
@@ -236,14 +246,15 @@ void TestFile(void){   int i; char data;
     }
   }
   if(eFile_WClose())            diskError("eFile_Close",0);
- // eFile_Directory(&Serial_OutChar);
+  eFile_Directory(&UART_OutChar);
   if(eFile_ROpen("file1"))      diskError("eFile_ROpen",0);
   for(i=0;i<1000;i++){
-    if(eFile_ReadNext(&data))   diskError("eFile_ReadNext",i);
-    //Serial_OutChar(data);
+    eFile_ReadNext(&data);   
+    UART_OutChar(data);
   }
+	if(eFile_RClose()) diskError("eFile_RClose",0);
   if(eFile_Delete("file1"))     diskError("eFile_Delete",0);
-  //eFile_Directory(&Serial_OutChar);
+  eFile_Directory(&UART_OutChar);
   printf("Successful test of creating a file\n\r");
   OS_Kill();
 }
@@ -253,7 +264,7 @@ void TestFile(void){   int i; char data;
 // Timer interrupts, period established by first call to OS_AddPeriodicThread
 int testmain2(void){ 
   OS_Init();           // initialize, disable interrupts
-
+	UART_Init();
 //*******attach background tasks***********
   //OS_AddPeriodicThread(&disk_timerproc,10*TIME_1MS,0);   // time out routines for disk
   
@@ -264,4 +275,51 @@ int testmain2(void){
  
   OS_Launch(10*TIME_1MS); // doesn't return, interrupts enabled in here
   return 0;               // this never executes
+}
+
+unsigned char TestBuffer[512];
+void FileSystemTesting(void){
+	int i,j;
+	char ch;
+	eFile_Init();
+	eFile_Format();
+	eFile_Create("Kobe");
+	printf("Start\n\r");
+	eFile_Directory(&UART_OutChar);
+//	eFile_WOpen("Kobe");
+//	eFile_Write('H');
+//	eFile_Write('e');
+//	eFile_Write('l');
+//	eFile_Write('l');
+//	eFile_Write('o');
+//	eFile_WClose();
+	eFile_RedirectToFile("Kobe");
+	printf("Hello");
+	eFile_EndRedirectToFile();
+	eFile_ROpen("Kobe");
+	for(i=0; i<5; i++){
+		eFile_ReadNext(&ch);
+		printf("%c\r\n",ch);
+	}
+	eFile_RClose();
+//	eFile_RedirectToFile("Lebron");
+//	printf("I am the greatest");
+//	eFile_EndRedirectToFile();
+//	eFile_ROpen("Lebron");
+//	for(i=0; i<1000; i++){
+//		eFile_ReadNext(&ch);
+//		printf("%u",ch);
+//	}
+//	eFile_RClose();
+	printf("End\n\r");
+	
+	OS_Kill();
+}
+int testmain3(void){
+	OS_Init();
+	UART_Init();
+	OS_AddThread(&FileSystemTesting,128,1);
+	OS_AddThread(&IdleTask,128,3);
+	OS_Launch(10*TIME_1MS);
+	return 0;
 }

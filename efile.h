@@ -6,7 +6,7 @@
 #define DIRENTRYSIZE 12
 #define DIRSIZE 42
 #define DIRECTBLOCK 0
-#define FATSIZE 4000
+#define FATSIZE 16
 #define FATSTART 1
 #define FATEND 16
 #define FREE 0
@@ -49,7 +49,7 @@ int eFile_Create( char name[]);  // create new file, make it empty
 // Open the file, read into RAM last block
 // Input: file name is a single ASCII letter
 // Output: 0 if successful and 1 on failure (e.g., trouble writing to flash)
-uint16_t eFile_WOpen(char name[], uint8_t* buf);      // open a file for writing 
+uint16_t eFile_WOpen(char name[]);      // open a file for writing 
 
 
 //---------- eFile_WOpenFront-----------------

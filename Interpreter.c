@@ -36,6 +36,7 @@
 #include <string.h>
 #include "OS.h"
 #include "ifdef.h"
+#include "efile.h"
 //#define INTERPRETER
 
 void Interpreter(void);
@@ -95,10 +96,15 @@ int main2(void){
 	while(1){;}
 }
 #define PE4  (*((volatile unsigned long *)0x40024040))
+	// 1) format 
+// 2) directory 
+// 3) print file
+// 4) delete file
+// execute   eFile_Init();  after periodic interrupts have started
 #ifdef INTERPRETER
-uint16_t TestBuffer[64];
 void Interpreter(void){
 	char input_str[30];
+	char ch;
 	int input_num,i,device,line;
 	int freq, numSamples;
 	UART_Init();              // initialize UART
@@ -113,6 +119,13 @@ void Interpreter(void){
 	#ifdef PROFILER
 	printf("PROFILE - get profiling info for past events\n\r");
 	#endif
+	printf("FORMAT - format the file system\n\r");
+	printf("LS - prints directory\n\r");
+	printf("CAT - prints file contents");
+	printf("RM - delete\n\r");
+	printf("TOUCH - create a file");
+	printf("INIT - initialize file system");
+	printf("WRT - write to a file");
 	
 	while(1){
 		//PE4^=0x10;
@@ -139,6 +152,49 @@ void Interpreter(void){
 				printf("%lu\t\t%lu\t\t%lu\n\r",(unsigned long)ThreadArray[i],ThreadAction[i],ThreadTime[i]/80000);
 			}
 			#endif 
+		} else if(!strcmp(input_str,"FORMAT")){
+				eFile_Format();
+		} else if(!strcmp(input_str,"LS")){
+			  eFile_Directory(&UART_OutChar);
+		} else if(!strcmp(input_str,"CAT")){
+				printf("\n\rFile to View: ");
+				for(i=0;input_str[i]!=0;i++){input_str[i]=0;}		//Flush the input_str
+				UART_InString(input_str,30);
+				if(eFile_ROpen(input_str))
+				{					
+					printf("\n\rError or File does not exist");
+					continue;
+				}
+				while(!eFile_ReadNext(&ch)){
+					printf("%c",ch);
+				}
+				eFile_RClose();
+				
+		} else if(!strcmp(input_str,"RM")){
+			printf("\n\rFile to Delete: ");
+			for(i=0;input_str[i]!=0;i++){input_str[i]=0;}		//Flush the input_str
+			UART_InString(input_str,30);
+			if(eFile_Delete(input_str)){
+				printf("\n\rError or File does not exist");
+			}
+		} else if(!strcmp(input_str,"TOUCH")){
+			printf("\n\rFile to Create: ");
+			for(i=0;input_str[i]!=0;i++){input_str[i]=0;}		//Flush the input_str
+			UART_InString(input_str,30);
+			if(eFile_Create(input_str)){
+				printf("\n\rError or No room left");
+			}
+		} else if(!strcmp(input_str, "INIT")){
+			eFile_Init();
+		} else if(!strcmp(input_str, "WRT")){
+			printf("\n\rFile to Write: ");
+			for(i=0;input_str[i]!=0;i++){input_str[i]=0;}		//Flush the input_str
+			UART_InString(input_str,30);
+			eFile_RedirectToFile(input_str);
+			for(i=0;input_str[i]!=0;i++){input_str[i]=0;}		//Flush the input_str
+			UART_InString(input_str,30);
+			printf("%s", input_str);
+			eFile_EndRedirectToFile();
 		}
 		else{
 			printf("\n\rInvalid Command. Try Again\n\r");

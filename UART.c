@@ -30,6 +30,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "tm4c123gh6pm.h"
+#include "efile.h"
 
 #include "FIFO.h"
 #include "UART.h"
@@ -316,17 +317,22 @@ char character;
   *bufPt = 0;
 }
 
+extern int RedirectFlag;
 
 struct __FILE { int handle; /* Add whatever you need here */ };
 FILE __stdout;
 FILE __stdin;
 
 int fputc(int ch, FILE *f){
- UART_OutChar(ch);
+ if(RedirectFlag==0){
+		UART_OutChar(ch);
+ }else{
+		eFile_Write(ch);
+ }
  return (1);
 }
 int fgetc (FILE *f){
- return (UART_InChar());
+		return (UART_InChar());
 }
 int ferror(FILE *f){
  return EOF;

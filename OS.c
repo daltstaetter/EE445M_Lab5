@@ -59,7 +59,7 @@ volatile uint32_t* Timer1_TAR_Ptr = ((volatile uint32_t *)0x40031048);
 #define STACKSIZE 128
 
 
-#define SYSTICK_PERIOD 2 //Systick interrupts every 2 ms so decrement sleep counters by 2
+#define SYSTICK_PERIOD 10 //Systick interrupts every 2 ms so decrement sleep counters by 2
 //Priority Array of Round-Robin Linked Lists
 tcbType* FrontOfPriLL[NUMPRI];
 tcbType* EndOfPriLL[NUMPRI];
